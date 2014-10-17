@@ -1,0 +1,382 @@
+Print["Author: wujin\nEmail:wujinnnnn@gmail.com\nLicense:GPL"]
+listSize[inputList_]:=Block[{dims,tempDim,tempList},
+dims={};
+tempList=inputList;
+tempDim=Dimensions[tempList];
+While[ListQ[tempList]&&tempDim!=  {},
+	dims=Append[dims,tempDim[[1]]];
+	tempList=tempList[[1]];
+	tempDim=Dimensions[tempList];
+];
+Return[dims];
+];
+stringSubscript[initString_,SubString_]:=Block[{temp,output},
+temp=initString;
+If[StringTake[temp,1]=="\!",temp=StringDrop[temp,1]];
+output=StringReplace["\!\(\*SubscriptBox[\(initString\), \(toSubString\)]\)",{"initString"->temp,"toSubString"->SubString}];
+Return[output];
+];
+stringSuperscript[initString_,superString_]:=Block[{temp,output},
+temp=initString;
+If[StringTake[temp,1]=="\!",temp=StringDrop[temp,1]];
+output=StringReplace["\!\(\*SuperscriptBox[\(initString\), \(toSubString\)]\)",{"initString"->temp,"toSubString"->superString}];
+Return[output];
+];
+generateIndex[sym_,indexBQ_,characterBQ_]:=Block[{n,output,index,character},
+If[StringQ[indexBQ],index=Characters[indexBQ],index=indexBQ];
+If[StringQ[characterBQ],character=Characters[characterBQ],character=characterBQ];
+If[Length[index]!=Length[character],Print["generateIndex:dimension not right!!"];Return[]];
+If[!AllTrue[character,StringQ],Print["generateIndex:character must be Strings!!!";Return[]]];
+n=Length[index];
+output=sym;
+For[i=1,i<=n,i++,
+	If[index[[i]]=="u",
+		output=stringSuperscript[output,character[[i]]],
+		If[index[[i]]=="d",
+			output=stringSubscript[output,character[[i]]],
+		Print["characters must be u or d"];Return[]]]];
+Return[output];
+];
+generateTensorTable[sym_,ind_,dim_]:=Block[{output,n,todoString,pairs,indexTable,result,index},
+output="T";
+index=ind;
+n=Dimensions[dim][[1]];
+todoString="Table[generateIndex[\"sym\",index,indexTable],pairs]";
+indexTable=Table["ToString["<>"i"<>ToString[i]<>"]",{i,n}]//ToString;
+(*pairs=Table[{"i"<>ToString[i],dim[[i]]},{i,n}]//ToString;*)
+pairs=Table[{"i"<>ToString[i],0,dim[[i]]-1},{i,n}]//ToString;
+pairs=StringTake[pairs,{2,-2}];
+todoString=StringReplace[todoString,{"sym"->sym,"indexTable"->indexTable,"pairs"->pairs}];
+(*Print[todoString];*)
+result=ToExpression[todoString];
+Return[result];
+];
+Module[{table,index,dim,sym,indexString,symTable},
+	table[_]={};
+	symTable[_]={};
+	index[_]={};
+	dim[_]={};
+	sym[_]={};
+	indexString[_]={};
+Tensor/:new[Tensor[ind_,dim_]]:=
+Block[{temp,tempTable,initTable},
+	temp=Tensor[Unique[]];
+	temp.setIndex[ind];
+	temp.setDim[dim];
+	temp.setSym["T"];
+	initTable=generateTensorTable["T",ind,dim];
+	temp.setTable[initTable];
+	temp.setSymTable[initTable];
+	Return[temp];
+];
+Tensor/:new[Tensor[ind_,dim_,initTable_]]:=
+Block[{temp,tempTable},
+	temp=Tensor[Unique[]];
+	temp.setIndex[ind];
+	temp.setDim[dim];
+	temp.setSym["T"];
+	temp.setTable[initTable];
+	temp.setSymTable[generateTensorTable["T",ind,dim]];
+	Return[temp];
+];
+Tensor/:Tensor[tag_].setIndex[value_]:=
+Block[{test},
+index[tag]=Characters[value];
+indexString[tag]=value;
+test=Map[#=="u"||#=="d"&,index[tag]];
+If[!AllTrue[test,TrueQ],Print["setIndex:Error!!!!!!!!!!!!!!!!!!!!index should be like uuuduudud!!!!"]];
+];
+Tensor/:Tensor[tag_].showIndex[]:=index[tag];
+Tensor/:Tensor[tag_].showIndexString[]:=indexString[tag];
+Tensor/:Tensor[tag_].setDim[value_]:=
+Block[{length,inputLength},
+length=Length[index[tag]];
+inputLength=Length[value];
+dim[tag]=value;
+If[length!=inputLength,Print["setDim:Dimension Error!!!!!!!!!!!!!!!!!!!"]]
+];
+Tensor/:Tensor[tag_].showDim[]:=dim[tag];
+Tensor/:Tensor[tag_].setToScale[l_,thesym_]:=
+Block[{},
+table[tag]=l;
+symTable[tag]=thesym;
+indexString[tag]="Scale";
+index[tag]={"Scale"};
+dim[tag]={1};
+sym[tag]=thesym;
+];
+Tensor/:Tensor[tag_].setTable[value_]:=
+Block[{size},
+size=listSize[value];
+If[size== dim[tag],table[tag]=value,Print["setTable:Error Init Tensor!!"];Print[size]];
+];
+Tensor/:Tensor[tag_].showTable[]:=table[tag];
+Tensor/:Tensor[tag_].setSymTable[value_]:=symTable[tag]=value;
+Tensor/:Tensor[tag_].showSymTable[]:=symTable[tag];
+Tensor/:Tensor[tag_].setSym[value_]:=
+Block[{},
+Tensor[tag].setSymTable[generateTensorTable[value,Tensor[tag].showIndexString[],Tensor[tag].showDim[]]];
+sym[tag]=value;
+];
+Tensor/:Tensor[tag_].showEqu[]:=Block[{theVal,theSym,theLen,theEQString,theValString,temp},
+If[indexString[tag]== "Scale",
+Return[sym[tag]<>"="<>ToString[table[tag],TraditionalForm]];
+];
+table[tag]=Simplify[table[tag]];
+theVal=table[tag];
+theSym=symTable[tag];
+theLen=Length[dim[tag]];
+genEqu[t__]:=Block[{},Return["="]];
+theEQString=Array[genEqu,dim[tag]];
+theVal=Transpose[{theVal},indexShiftRight[theLen+1,1]];
+theValString=Apply[ToString[#,TraditionalForm]&,theVal,{theLen}];
+temp=MapThread[StringJoin,{theSym,theEQString},theLen];
+temp=MapThread[StringJoin,{temp,theValString},theLen];
+Return[temp];
+];
+Tensor/:Tensor[tag_].showSym[]:=sym[tag];
+Tensor/:Tensor[tag_].simplifyTable[]:=Block[{},
+table[tag]=Simplify[table[tag]];
+];
+Tensor/:Tensor[tag_].info[]:=Block[{},
+Print["index: "<>(Tensor[tag].showIndexString[])];
+Print["dimensions: ",Tensor[tag].showDim[]];
+Print["symbol table:"];
+Print[Tensor[tag].showSymTable[]];
+Print["value table"];
+Print[Tensor[tag].showTable[]];
+]
+]
+tensorProduct[t1_,t2_]:=Block[{str1,str2,dims,table1,table2,timeForm,iList1,iList2,pairs,todoString,n1,n2,result},
+str1=t1.showIndexString[];
+str2=t2.showIndexString[];
+table1=t1.showTable[];
+table2=t2.showTable[];
+dims=Join[t1.showDim[],t2.showDim[]];
+n1=StringLength[str1];
+n2=StringLength[str2];
+todoString="Table[timeForm,pairs]";
+iList1=Table["i"<>ToString[i],{i,1,n1}]//ToString;
+iList2=Table["i"<>ToString[i],{i,n1+1,n1+n2}]//ToString;
+iList1=StringTake[iList1,{2,-2}];
+iList2=StringTake[iList2,{2,-2}];
+timeForm=StringReplace["Times[table1[[iList1]],table2[[iList2]]]",{"iList1"->iList1,"iList2"->iList2}];
+pairs=Table[{"i"<>ToString[i],dims[[i]]},{i,n1+n2}]//ToString;
+pairs=StringTake[pairs,{2,-2}];
+todoString=StringReplace[todoString,{"timeForm"->timeForm,"pairs"->pairs}];
+result=ToExpression[todoString];
+Return[new[Tensor[str1<>str2,dims,result]]];
+]
+tensorSymProduct[t1_,t2_]:=Block[{str1,str2,dims,table1,table2,timeForm,iList1,iList2,pairs,todoString,n1,n2,result},
+str1=t1.showIndexString[];
+str2=t2.showIndexString[];
+table1=t1.showTable[];
+table2=t2.showTable[];
+dims=Join[t1.showDim[],t2.showDim[]];
+n1=StringLength[str1];
+n2=StringLength[str2];
+todoString="Table[timeForm,pairs]";
+iList1=Table["i"<>ToString[i],{i,1,n1}]//ToString;
+iList2=Table["i"<>ToString[i],{i,n1+1,n1+n2}]//ToString;
+iList1=StringTake[iList1,{2,-2}];
+iList2=StringTake[iList2,{2,-2}];
+timeForm=StringReplace["table1[[iList1]]<>table2[[iList2]]",{"iList1"->iList1,"iList2"->iList2}];
+pairs=Table[{"i"<>ToString[i],dims[[i]]},{i,n1+n2}]//ToString;
+pairs=StringTake[pairs,{2,-2}];
+todoString=StringReplace[todoString,{"timeForm"->timeForm,"pairs"->pairs}];
+result=ToExpression[todoString];
+Return[result];
+]
+tensorContract[t_Tensor,indexToContract_List]:=Block[{str,dims,table,n,allIndex,i1,i2,ii,dimEqual,theDim,newDims,newAnotherAllIndex,newStr,todoString,timeForm,newAllIndexNumber,pairs,allIndexNumber,result,temp},
+str=t.showIndexString[];
+dims=t.showDim[];
+table=t.showTable[];
+n=StringLength[str];
+allIndexNumber=Table[i,{i,n}];
+allIndex=Table["i"<>ToString[i],{i,n}];
+i1=indexToContract[[1]];
+i2=indexToContract[[2]];
+dimEqual=(dims[[i1]]== dims[[i2]]);
+theDim=dims[[i1]];
+If[!(((StringTake[str,{i1,i1}]=="u"&&StringTake[str,{i2,i2}]=="d")||(StringTake[str,{i1,i1}]=="d"&&StringTake[str,{i2,i2}]=="u"))&&dimEqual),Print["tensorContract:only u index and d index can contract!!!!!!!!!!\nOr dimension not Equal!!"];Return[];];
+If[n==2,
+temp=new[Tensor["u",{1}]];
+result=Tr[t.showTable[]];
+(*result=Simplify[result];*)
+temp.setToScale[result,t.showSym[]];
+Return[temp];
+];
+newDims=Drop[Drop[dims,{i1,i1}],{i2-1,i2-1}];
+newAllIndexNumber=Drop[Drop[allIndexNumber,{i1,i1}],{i2-1,i2-1}];
+newAnotherAllIndex=ReplacePart[allIndex,{i1->"ii",i2->"ii"}]//ToString;
+newStr=StringDrop[StringDrop[str,{i1,i1}],{i2-1,i2-1}];
+newAnotherAllIndex=StringTake[newAnotherAllIndex,{2,-2}];
+pairs=Table[{"i"<>ToString[i],dims[[i]]},{i,newAllIndexNumber}]//ToString;
+pairs=StringTake[pairs,{2,-2}];
+todoString="Table[timeForm,pairs]";
+timeForm="Sum[table[["<>newAnotherAllIndex<>"]],{ii,"<>ToString[theDim]<>"}]";
+todoString=StringReplace[todoString,{"timeForm"->timeForm,"pairs"->pairs}];
+(*Print["to calculate new tensor",newStr,newDims];*)
+result=ToExpression[todoString];
+(*Print["Value ok in tensorContract, simplifying"];*)
+(*result=Simplify[result];*)
+Return[new[Tensor[newStr,newDims,result]]];
+];
+tensorContract[t1_Tensor,t2_Tensor,indexToContract_List]:=Block[{tt,i1,i2,result,n1},
+tt=tensorProduct[t1,t2];
+n1=StringLength[t1.showIndexString[]];
+i1=indexToContract[[1]];
+i2=indexToContract[[2]];
+result=tensorContract[tt,{i1,n1+i2}];
+Return[result];
+];
+tensorTranspose[t_Tensor,indexToChange_List]:=Block[{dim,indexStr,table,n,indexNumberStr,newIndexNumberStr,newDim,newIndexStr,pairs,todoString,result,i},
+dim=t.showDim[];
+indexStr=t.showIndex[];
+table=t.showTable[];
+n=StringLength[t.showIndexString[]];
+indexNumberStr=Table["i"<>ToString[i],{i,n}];
+newIndexNumberStr=indexNumberStr//ToString;
+newIndexNumberStr=StringTake[newIndexNumberStr,{2,-2}];
+newDim=dim[[indexToChange]];
+newIndexStr=indexStr[[indexToChange]];
+newIndexStr=StringJoin[newIndexStr];
+pairs=Table[{"i"<>ToString[i],dim[[i]]},{i,n}];
+pairs=pairs[[indexToChange]]//ToString;
+pairs=StringTake[pairs,{2,-2}];
+todoString="Table[table[[hehe]],pairs]";
+todoString=StringReplace[todoString,{"hehe"->newIndexNumberStr,"pairs"->pairs}];
+result=ToExpression[todoString];
+Return[new[Tensor[newIndexStr,newDim,result]]];
+];
+tensorCoordinateD[t_Tensor,v_List]:=Block[{dim,indexStr,table,n,vLength,newDim,newIndexStr,newTable,result},
+dim=t.showDim[];
+indexStr=t.showIndexString[];
+table=t.showTable[];
+n=StringLength[indexStr];
+vLength=Length[v];
+newDim=Append[dim,vLength];
+newIndexStr=StringInsert[indexStr,"d",-1];
+newTable=Outer[D,table,v];
+(*Print["new table is ",newTable];*)
+result=new[Tensor[newIndexStr,newDim,newTable]];
+Return[result];
+];
+tensorD[t_Tensor,v_List,gama_Tensor]:=
+Block[{n,valueTable,theInd,theIndStr,newDims,temp,transferListInit,transferList},
+If[gama.showIndexString[]!= "udd",
+Print["Error \[CapitalGamma]!!!!"];
+Return[];];
+theInd=t.showIndex[];
+theIndStr=t.showIndexString[];
+newDims=Append[t.showDim[],Length[v]];
+n=Length[t.showDim[]];
+transferListInit=Append[Table[i,{i,3,1+n}],2];
+temp=tensorCoordinateD[t,v];
+(*Print["\[PartialD]x \n",temp.showEqu[]//MatrixForm];*)
+valueTable=temp.showTable[];
+For[indI=1,indI<= n,indI++,
+If[theInd[[indI]]== "u",
+temp=C[gama,t,{2,indI}];
+transferList=Insert[transferListInit,1,indI];
+temp=tensorTranspose[temp,transferList];
+(*Print["i=",indI,"u\n",transferList,"\n",temp.showEqu[]//MatrixForm];*)
+valueTable=valueTable+temp.showTable[],
+If[theInd[[indI]]== "d",
+temp=C[gama,t,{1,indI}];
+transferList=Insert[transferListInit,1,indI];
+temp=tensorTranspose[temp,transferList];
+(*Print["i=",indI,"d\n",transferList,"\n",temp.showEqu[]//MatrixForm];*)
+valueTable=valueTable-temp.showTable[],
+Print["Error in tensorD!!!!"];
+Return[];
+]];
+];
+(*valueTable=Simplify[valueTable];*)
+Return[new[Tensor[theIndStr<>"d",newDims,valueTable]]];
+];
+
+tensorSymPart[t_Tensor,v_List]:=Block[{dim,indexStr,table,n,vLength,sumValue,pListInit,subPair,pList,signList,newTable,thisPList,theIndex},
+dim=t.showDim[];
+indexStr=t.showIndexString[];
+table=t.showTable[];
+n=StringLength[indexStr];
+vLength=Length[v];
+pListInit=Table["t"<>ToString[i],{i,vLength}];
+subPair=Table[pListInit[[i]]-> v[[i]],{i,vLength}];
+pList=Permutations[pListInit];
+signList=Apply[Signature,Transpose[{pList},{2,1,3}],1];
+sumValue=0;
+For[i=1,i<= vLength!,i++,
+thisPList=pList[[i]]/.subPair;
+theIndex=Table[i,{i,n}];
+theIndex[[v]]=thisPList;
+sumValue=sumValue+Transpose[table,theIndex];
+];
+newTable=sumValue/vLength!;
+(*newTable=Simplify[newTable];*)
+Return[new[Tensor[indexStr,dim,newTable]]];
+]
+tensorAnSymPart[t_Tensor,v_List]:=Block[{dim,indexStr,table,n,vLength,sumValue,pListInit,subPair,pList,signList,newTable,thisPList,theIndex},
+dim=t.showDim[];
+indexStr=t.showIndexString[];
+table=t.showTable[];
+n=StringLength[indexStr];
+vLength=Length[v];
+pListInit=Table["t"<>ToString[i],{i,vLength}];
+subPair=Table[pListInit[[i]]-> v[[i]],{i,vLength}];
+pList=Permutations[pListInit];
+signList=Apply[Signature,Transpose[{pList},{2,1,3}],1];
+sumValue=0;
+For[i=1,i<= vLength!,i++,
+thisPList=pList[[i]]/.subPair;
+theIndex=Table[i,{i,n}];
+theIndex[[v]]=thisPList;
+sumValue=sumValue+Transpose[table,theIndex]*signList[[i]];
+];
+newTable=sumValue/vLength!;
+(*newTable=Simplify[newTable];*)
+Return[new[Tensor[indexStr,dim,newTable]]];
+]
+Unprotect[C];
+tPlus[t1_Tensor,t2_Tensor]:=Block[{dim1,dim2,ind1,ind2,table1,table2,result},
+dim1=t1.showDim[];
+dim2=t2.showDim[];
+ind1=t1.showIndexString[];
+ind2=t2.showIndexString[];
+table1=t1.showTable[];
+table2=t2.showTable[];
+result=table1+table2;
+(*result=Simplify[result];*)
+If[(dim1== dim2)&&(ind1== ind2),result=new[Tensor[ind1,dim1,result]],
+Print["dimension Not Match!!!"];Return[]];
+Return[result];
+];
+tMinus[t1_Tensor,t2_Tensor]:=Block[{dim1,dim2,ind1,ind2,table1,table2,result},
+dim1=t1.showDim[];
+dim2=t2.showDim[];
+ind1=t1.showIndexString[];
+ind2=t2.showIndexString[];
+table1=t1.showTable[];
+table2=t2.showTable[];
+result=table1-table2;
+(*result=Simplify[result];*)
+If[(dim1== dim2)&&(ind1== ind2),result=new[Tensor[ind1,dim1,result]],
+Print["dimension Not Match!!!"];Return[]];
+Return[result];
+];
+C[t1_Tensor,t2_Tensor,indToC_List]:=tensorContract[t1,t2,indToC];
+C[tt_Tensor,indToC_List]:=tensorContract[tt,indToC];
+Protect[C];
+indexShiftLeft[tnum_,number_]:=
+Block[{tt,temp,tempList},
+tt=Table[i,{i,1,tnum}];
+tempList=Table[i,{i,1,number}];
+temp=Drop[tt,{1,number}];
+temp=Join[temp,tempList];
+Return[temp]];
+indexShiftRight[tnum_,number_]:=
+Block[{temp,len},
+len=tnum;
+temp=indexShiftLeft[tnum,len-number];
+Return[temp]];
