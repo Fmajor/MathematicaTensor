@@ -10,10 +10,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       158,          7]
-NotebookDataLength[     90033,       2131]
-NotebookOptionsPosition[     89547,       2110]
-NotebookOutlinePosition[     90055,       2130]
-CellTagsIndexPosition[     90012,       2127]
+NotebookDataLength[     90047,       2131]
+NotebookOptionsPosition[     89561,       2110]
+NotebookOutlinePosition[     90069,       2130]
+CellTagsIndexPosition[     90026,       2127]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -21,9 +21,8 @@ Notebook[{
 
 Cell[CellGroupData[{
 Cell[BoxData[{
- RowBox[{"Print", "[", 
-  "\"\<Author: wujin\\nEmail:wujinnnnn@gmail.com\\nLicense:GPL\>\"", 
-  "]"}], "\[IndentingNewLine]", 
+ RowBox[{"Print", "[", "\"\<Author: wujin\\nEmail:wujinnnnn@gmail.com\\n\>\"",
+   "]"}], "\[IndentingNewLine]", 
  RowBox[{
   RowBox[{
    RowBox[{"listSize", "[", "inputList_", "]"}], ":=", 
@@ -2046,7 +2045,8 @@ uuuduudud!!!!\>\"", "]"}]}], "]"}], ";"}]}], "\[IndentingNewLine]", "]"}]}],
    3.622444602365631*^9, 3.622444723824462*^9}, {3.622445782975238*^9, 
    3.622447138649445*^9}, {3.622448396832563*^9, 3.622449107134205*^9}, {
    3.622450134288066*^9, 3.6224519080999327`*^9}, {3.622457759274003*^9, 
-   3.6224596280590916`*^9}, {3.622498712688649*^9, 3.6224993547351465`*^9}}],
+   3.6224596280590916`*^9}, {3.622498712688649*^9, 3.6224993547351465`*^9}, 
+   3.6225021423645773`*^9}],
 
 Cell[BoxData["\<\"Author: \
 wujin\\nEmail:wujinnnnn@gmail.com\\nLicense:GPL\"\>"], "Print",
@@ -2130,8 +2130,8 @@ CellTagsIndex->{}
 (*NotebookFileOutline
 Notebook[{
 Cell[CellGroupData[{
-Cell[580, 22, 84815, 2026, 10980, "Input"],
-Cell[85398, 2050, 4133, 57, 62, "Print"]
+Cell[580, 22, 84829, 2026, 10960, "Input"],
+Cell[85412, 2050, 4133, 57, 62, "Print"]
 }, Open  ]]
 }
 ]
