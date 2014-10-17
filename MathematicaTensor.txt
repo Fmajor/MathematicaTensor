@@ -119,10 +119,10 @@ Tensor[tag].setSymTable[generateTensorTable[value,Tensor[tag].showIndexString[],
 sym[tag]=value;
 ];
 Tensor/:Tensor[tag_].showEqu[]:=Block[{theVal,theSym,theLen,theEQString,theValString,temp},
+Tensor[tag].simplifyTable[];
 If[indexString[tag]== "Scale",
 Return[sym[tag]<>"="<>ToString[table[tag],TraditionalForm]];
 ];
-table[tag]=Simplify[table[tag]];
 theVal=table[tag];
 theSym=symTable[tag];
 theLen=Length[dim[tag]];
